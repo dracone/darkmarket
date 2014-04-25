@@ -10,6 +10,7 @@ class Orders(object):
     def __init__(self, transport):
         self._transport = transport
         self._priv = transport._myself
+        
         # my escrows
         self._escrows = ["02ca0020a9de236b47ca19e147cf2cd5b98b6600f168481da8ec0ca9ec92b59b76db1c3d0020f9038a585b93160632f1edec8278ddaeacc38a381c105860d702d7e81ffaa14d",
                          "02ca0020c0d9cd9bdd70c8565374ed8986ac58d24f076e9bcc401fc836352da4fc21f8490020b59dec0aff5e93184d022423893568df13ec1b8352e5f1141dbc669456af510c"]
@@ -18,13 +19,13 @@ class Orders(object):
         transport.add_callback('order', self.on_order)
 
 
-    # create a review
+    # Create a new order
     def create_order(self, seller, text): # action
         id = random.randint(0,1000000)
         buyer = self._transport._myself.get_pubkey()
         new_order = order(id, buyer, seller, 'new', text, self._escrows)
         self._orders[id] = new_order
-        # announce the new reputation
+        # Announce the new order
         self._transport.send(new_order, seller)
 
     def accept_order(self, new_order): # auto
@@ -54,17 +55,23 @@ class Orders(object):
     # callbacks for messages
     # a new order has arrived
     def on_order(self, msg):
+        
         state = msg.get('state')
+        
         self._transport.log("Order " + state)
+        
         buyer = msg.get('buyer').decode('hex')
         seller = msg.get('seller').decode('hex')
+        
         myself = self._transport._myself.get_pubkey()
+        
         if not buyer or not seller or not state:
             self._transport.log("Malformed order")
             return
         if not state == 'new' and not msg.get('id'):
             self._transport.log("Order with no id")
             return
+        
         # check order state
         if state == 'new':
             if myself == buyer:
@@ -111,6 +118,7 @@ class Orders(object):
             else:
                 self._orders[msg['id']] = msg
 
+# Test Code if run directly
 if __name__ == '__main__':
     seller = ECC(curve='secp256k1')
     class FakeTransport():
